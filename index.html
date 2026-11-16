@@ -209,6 +209,7 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 .mb .b em{font-style:normal;font-size:12px;font-weight:700;margin-bottom:4px}
 .mb .b span{font-size:11px;color:var(--dim);margin-top:6px}
 .editing{font-size:12px;color:var(--warn);margin:-6px 0 12px}
+.verbar{text-align:center;font-size:12px;color:var(--dim);padding:14px 12px 6px;border-top:1px solid var(--line);margin-top:18px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -223,12 +224,15 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
   <div class="tabs" id="tabs"></div>
 </div></div>
 <div class="wrap" id="page"></div>
+<div class="wrap"><div class="verbar" id="verbar"></div></div>
 <button class="fab" id="fab" aria-label="新增紀錄">+</button>
 <div class="mask" id="mask"></div>
 <div class="sheet" id="sheet"><div class="in"><div class="grab"></div><div id="sheetBody"></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
+var APP_VERSION = 'v1.0.1';
+var APP_UPDATED = '2026-11-17 01:24';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -559,6 +563,7 @@ function render(){
   var f={home:pHome,weights:pWeights,week:pWeek,att:pAtt,body:pBody,edit:pEdit}[state.tab];
   var warnHtml=connErr?'<div class="banner"><span>⚠️ 尚未連上試算表：'+esc(connErr)+'</span><button data-opencfg>設定</button></div>':'';
   $('page').innerHTML='<div class="fade">'+warnHtml+f()+'</div>';
+  $('verbar').innerHTML='<span>版本 '+APP_VERSION+'</span><span>·</span><span>網頁更新 '+APP_UPDATED+'</span>';
 }
 
 /* ---------- forms ---------- */
