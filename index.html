@@ -232,8 +232,8 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION = 'v1.1.0';
-var APP_UPDATED = '2026-11-17 01:33';
+var APP_VERSION = 'v1.1.1';
+var APP_UPDATED = '2026-11-17 01:46';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -422,12 +422,12 @@ function heroMsg(){
 
 /* ---------- pages ---------- */
 function pHome(){
-  var h='',msg=heroMsg(),last=M.sessions[0],b=M.body[0],cm=M.cm;
+  var h='',msg=heroMsg(),last=M.sessions[0],b=M.body[0],cm=M.cm,pc=cm.goal?Math.round(cm.n/cm.goal*100):0;
   h+='<div class="card hero"><div class="row">'+ring(M.thisN,D.target)+'<div class="msg"><b>'+msg[0]+'</b><p>'+msg[1]+'</p>'+dayChips()+'</div></div></div>';
   h+='<div class="grid2">';
   h+='<div class="card stat"><div class="v">'+(last?ago(last.d):'—')+'</div><div class="l">上次訓練'+(last?' · '+esc(last.day):'')+'</div></div>';
   h+='<div class="card stat"><div class="v">'+M.streak+' <span style="font-size:15px">週</span></div><div class="l">連續達標</div></div>';
-  h+='<div class="card stat"><div class="v">'+cm.n+'<span style="font-size:15px;color:var(--sub)"> / '+cm.goal+'</span></div><div class="l">'+(cm.m+1)+' 月出勤</div></div>';
+  h+='<div class="card stat"><div class="v">'+cm.n+'<span style="font-size:15px;color:var(--sub)"> / '+cm.goal+'</span></div><div class="l">'+(cm.m+1)+' 月出勤 · 出席率 '+pc+'%</div></div>';
   h+='<div class="card stat"><div class="v">'+(b?(FACE[b.f]||'📝'):'—')+'</div><div class="l">'+(b?'身體狀況 · '+md(b.d):'還沒記錄身體狀況')+'</div></div>';
   h+='</div>';
   h+='<div class="card"><h2>各動作最強重量 <small>正式 / 突破組最高</small></h2>';
