@@ -26,20 +26,32 @@
 - 預設值：重量帶「上次同一動作」填的數字，第一次帶菜單重量；次數推日/拉日 8 下、腿日 10 下；沒做的動作留空
 - App 更新後手機要 ☰ → Sync，再完全關掉重開，不然會跑快取的舊版
 
-### 3. Google Apps Script 網頁「重訓儀表板」（主要看統計、也能記錄）
-- https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec
-- 權限：只有使用者本人能開（要登入 Google）。建議用 Safari「加入主畫面」
-- 風格：深色卡片，跟棒球那個網頁一樣
-- 分頁：
-  - **首頁**：本週次數進度圈、推拉腿哪天練過、上次練是幾天前、連續達標週數、出勤率、最近身體狀況、各動作最強重量與最近一次正式組升降
+### 3. Google Apps Script 後端 API + GitHub Pages 獨立前端「重訓紀錄」（目前主力網頁）
+- **GitHub Repo**：https://github.com/MCkkkjese/workout-log （本機已初始化 `.git`，可用 Sourcetree 或 `git push` 管理）
+- **GitHub Pages 線上網址**：https://mckkkjese.github.io/workout-log/
+- **前端本機檔案**：`index.html`、`version.json`、`manifest.json`、`apple-touch-icon.png`（iOS `🏋🏻` Emoji＋白漸層）、`icon-192.png`、`icon-512.png`
+- **後端檔案**：`apps-script/Code.gs`（已同步部署到 Apps Script「重訓儀表板」專案，版本 5；執行身分：**我**、誰可以存取：**所有人**）
+  - `/exec` 網址：`https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec`
+  - 支援 `doGet(e)`（`?api=1` 回傳 JSON）與 `doPost(e)`（`Content-Type: text/plain;charset=utf-8` 避開 CORS preflight），可選設 `API_TOKEN`
+  - 支援動作：`getData`、`saveWorkout`、`updateWorkout`、`deleteWorkout`、`saveBody`、`updateBody`、`deleteBody`、`addExercise`、`updateExercise`
+- **風格與設定**：
+  - 預設 **奶茶色暖系配色** ＋ **思源宋體（Noto Serif TC）**；點右上角 `⚙️` 可切換 **☕ 奶茶色 / 🌙 深色模式**
+  - 敏感的 `API 網址` 與 `Token 密碼` 摺疊收納於 `⚙️` 內的「進階：資料庫連線設定」
+  - 所有設定（主題、API 網址、Token）皆儲存於瀏覽器 **Cookie**（相容舊 `localStorage`）；訓練資料另存 `localStorage` 快取 (`gym_cache`) 以秒開
+- **更新與防快取機制**：
+  - 每次更新前端時需同步更新 `index.html` 內的 `APP_VERSION` / `APP_UPDATED` 以及 `version.json`
+  - 頁面啟動時先讀快取秒開，同時背景以 `fetch('version.json?_t=' + Date.now(), { cache: 'no-store' })` 檢查版本，若有新版則帶 `?_v=...` 自動無感重整（搭配 `sessionStorage` 防迴圈）
+  - 頁面最下方顯示目前版本號與網頁更新時間（目前為 `v1.4.0`）
+- **分頁功能**：
+  - **首頁**：本週次數進度圈、推拉腿狀態、上次練幾天前、連續達標週數、**本月出席率圓圈卡片**（以 `截至今日已過天數 ÷ 7 × 每週目標` 為分母動態計算，中間依出席率顯示 iOS Emoji：`😊` ≥ 85%、`😐` ≥ 50%、`😭` < 50%）、最近身體狀況、各動作最強重量與最近一次正式組升降
   - **動作重量**：推/拉/腿切換，大字顯示上次的熱身、⭐正式、⭐突破（在健身房忘記重量時看）
   - **本週進度**：缺哪個訓練日、七天進度、建議下次練最久沒練的那天；最下面顯示最近 3 次身體狀況
-  - **出勤**：以「月」結算（目標 = 當月天數 ÷ 7 × 3，11 月 13 次），顯示超前/落後；本月日曆（推拉腿不同色）；近 6 個月結算；近 8 週長條圖
+  - **出勤**：以「截至今日進度」與「全月目標」雙指標計算，顯示超前/落後；本月日曆（推拉腿不同色）；近 6 個月結算；近 8 週長條圖
   - **身體狀況**：近 30 天最常出現的狀況統計、疲勞趨勢圖
-  - **修改紀錄**：訓練紀錄 / 身體狀況切換，依月份列出，可改日期、重量、次數；刪除要按兩次
-- 右下角 ＋：記推日/拉日/腿日或單獨記身體狀況。訓練表單帶上次重量、−/＋ 微調、「今天沒做」可略過；最下面有選填的「練完的身體狀況」
-  - 身體狀況選項（可複選）：狀態超好、精神好、有點累、很疲勞、肌肉痠痛、睡不好、關節不舒服、小傷、壓力大、生病；疲勞程度 1～5
-- 測試狀況：Apps Script 後端完整跑過（新增、修改、刪除）；手機上實際點按沒有完整測過
+  - **修改紀錄**（三子分頁）：
+    - `訓練紀錄` / `身體狀況`：依月份列出，可改日期、重量、次數；刪除要按兩次
+    - `動作管理`：可 **新增動作**（寫入 `動作` 分頁並在對應 `${day}紀錄` 新增 4 欄）與 **修改動作名稱／部位／預設重量**（同步更新 `動作` 與 `${day}紀錄` 欄位標題）
+- **右下角 `＋`**：記推日/拉日/腿日或單獨記身體狀況。訓練表單帶上次重量、−/＋ 微調、「今天沒做」可略過；最下面有選填的「練完的身體狀況」（疲勞程度 1～5、可複選狀態與痠痛部位、睡眠時數、備註）
 
 ## 菜單（`動作` 分頁）
 - **推日**：臥推 22.5、胸推 20、肩推 17.5、側平舉（躺 45 度）7.5、三頭屈伸 熱身 16.25 / 做組 18.75
@@ -53,5 +65,5 @@
 - https://claude.ai/artifact/XVVNazTmpFkKfb6N6XMe2B（重訓儀表板）
 使用者還沒決定要不要刪掉這兩個 Artifact，刪除前要先問。
 
-## 還沒有在本機的東西
-Apps Script 網頁的原始碼不在這個資料夾。要改網頁時，先到 script.google.com 打開「重訓儀表板」專案（或用 clasp 拉下來）。
+## 本機同步狀態
+- 前端 `index.html` 與後端 `apps-script/Code.gs` 皆已在本機追蹤並納入 Git；修改前端後直接 `git push` 即自動更新 GitHub Pages，修改 `apps-script/Code.gs` 後需到 Apps Script 專案「重訓儀表板」同步貼上並「管理部署作業 → 建立新版本」。

@@ -1,31 +1,86 @@
-# 重訓紀錄網頁（本地 / GitHub Pages 版）
+# 重訓紀錄網頁（Workout Log）
 
-前端為純靜態 HTML/CSS/JS（[index.html](./index.html)），可直接放在本地或部署到 GitHub Pages；後端透過 Google Apps Script API（[apps-script/Code.gs](./apps-script/Code.gs)）讀寫你的 Google 試算表「重訓紀錄」，與 AppSheet 共用同一份資料庫。
+個人重訓紀錄與統計儀表板，採純靜態前端（HTML / CSS / JS）部署於 **GitHub Pages**，後端透過 **Google Apps Script JSON API** 讀寫個人 Google 試算表「重訓紀錄」，並與手機 AppSheet 共用同一份資料庫。
 
-## 檔案說明
-- `index.html`：獨立前端網頁（可直接上傳到 GitHub Pages 作為首頁）
-- `apps-script/Code.gs`：Google Apps Script 後端程式（同時保留原本網頁模式與新增 JSON API 模式）
+👉 **線上網頁**：https://mckkkjese.github.io/workout-log/
 
-## 第一次啟用步驟（只需做一次）
+---
 
-### 1. 更新 Google Apps Script 後端
-1. 打開你的 Apps Script 專案「重訓儀表板」（[開啟編輯器](https://script.google.com/home/projects/1ew9k3qLB3AbSYJxr363IakNAoDHL7aa79X7ojQFrLK2h9tSBU1eV3D0Q/edit)）。
-2. 把 [apps-script/Code.gs](./apps-script/Code.gs) 的內容完整覆蓋貼進原本的 `程式碼.gs` / `Code.gs`（建議順便在最上方 `API_TOKEN = '...'` 填一組自己的密碼）。
-3. 按儲存，然後點右上角 **「部署」→「管理部署作業」→ 編輯（鉛筆圖示）**：
-   - 版本選 **「建立新版本」**
-   - 執行身分：**「我」**
-   - 誰可以存取：**「任何人」**（這樣 GitHub Pages 或本機網頁才能透過 API 連線；有設 `API_TOKEN` 就只有知道密碼的人能讀寫）
-4. 按「部署」，複製網頁應用程式網址（結尾為 `/exec`）。
+## 系統架構
+- **前端網頁（GitHub Pages）**：[index.html](./index.html)（單頁式應用，含 `localStorage` 資料快取與 Cookie 設定儲存）
+- **後端 API（Google Apps Script）**：[apps-script/Code.gs](./apps-script/Code.gs)（提供 `doGet` / `doPost` JSON API，支援選填 `API_TOKEN` 密碼保護）
+- **資料庫（Google Sheets）**：`重訓紀錄` 試算表（含 `推日紀錄`、`拉日紀錄`、`腿日紀錄`、`訓練紀錄`、`動作`、`設定`、`身體狀況`）
 
-### 2. 本地預覽
-在專案資料夾執行：
+---
+
+## 目前功能一覽
+
+### 1. 六大主分頁
+- **首頁**：
+  - 本週訓練次數進度圈、推／拉／腿完成狀態標籤。
+  - 上次訓練時間、連續達標週數、最近身體狀況。
+  - **本月出席率圓圈卡片**：以「截至今日已過天數 ÷ 7 × 每週目標次數」動態計算應練次數，依出席率切換進度圈顏色與 iOS Emoji（`😊` ≥ 85%、`😐` ≥ 50%、`😭` < 50%）。
+  - 各動作歷史最強重量（正式／突破組最高）與最近一次升降（`▲` / `▼`）。
+- **動作重量**：
+  - 推日／拉日／腿日切換，大字顯示上次的熱身、⭐正式、⭐突破重量與預設次數，方便健身房現場查詢。
+- **本週進度**：
+  - 顯示本週缺練項目、一週七天訓練標記、各訓練日距上次天數，並自動建議下次該練最久沒練的訓練日，下方附最近 3 次身體狀況。
+- **出勤**：
+  - 本月動態進度（截至今日應練次數 vs 實際次數、超前／落後提醒與全月目標）。
+  - 本月出勤日曆（推／拉／腿以不同顏色標記）、近 6 個月結算百分比長條圖、近 8 週訓練次數長條圖。
+- **身體狀況**：
+  - 近 30 天最常出現的狀態與痠痛部位統計、近 14 筆疲勞趨勢折線圖，以及全部身體狀況列表（也可單獨新增）。
+- **修改紀錄**（三大子分頁）：
+  - **訓練紀錄**：依月份列出，點擊可修改日期、重量、次數，或刪除（需按兩次確認）。
+  - **身體狀況**：依月份列出，點擊可修改或刪除。
+  - **動作管理**：可 **新增動作**（選擇訓練日、名稱、部位、預設熱身／正式重量，自動寫入 `動作` 分頁並在對應訓練日紀錄表新增 4 欄），或 **修改現有動作名稱／部位／預設重量**（同步更新菜單與紀錄表欄位標題）。
+
+### 2. 快速記錄（右下角 `＋`）
+- 可選擇記 **推日 / 拉日 / 腿日** 或單獨記 **身體狀況**。
+- 訓練表單自動帶入上次同一動作的重量，支援 `−` / `+` 微調與「今天沒做」略過。
+- 訓練表單最下方內嵌選填「練完的身體狀況」（疲勞程度 1～5、可複選狀態與痠痛部位、睡眠時數、備註）。
+
+### 3. 外觀、設定與更新機制
+- **雙主題切換（☕ 奶茶色 / 🌙 深色模式）**：
+  - 預設為溫潤奶茶色背景搭配 **思源宋體（Noto Serif TC）**；點右上角 `⚙️` 可一鍵切換深色模式。
+- **設定隱藏與 Cookie 儲存**：
+  - 敏感的 `API 網址` 與 `Token 密碼` 收納於 `⚙️` 內的「進階：資料庫連線設定」折疊選單；主題與連線設定皆儲存於瀏覽器 **Cookie**。
+- **PWA 主畫面圖示**：
+  - 透過 [manifest.json](./manifest.json) 與 `apple-touch-icon.png`（iOS `🏋🏻` Emoji 搭配柔和白漸層背景），Safari 加入主畫面／Dock 後可像獨立 App 一樣開啟。
+- **無感自動清快取更新**：
+  - 開啟時先秒讀快取不卡頓，同時背景以 `cache: 'no-store'` 檢查 [version.json](./version.json)；若偵測到 GitHub 上有新版本，自動重新載入最新頁面，避免手機瀏覽器殘留舊版快取。
+  - 頁面最下方顯示目前網頁 **版本號與更新時間**。
+
+---
+
+## 專案檔案結構
+```text
+├── index.html             # 前端主程式（HTML + CSS + JS）
+├── version.json           # 前端版本號（自動清快取檢查用）
+├── manifest.json          # PWA 設定檔
+├── apple-touch-icon.png   # iOS / Safari 主畫面圖示 (180x180)
+├── icon-192.png           # PWA 圖示 (192x192)
+├── icon-512.png           # PWA 圖示 (512x512)
+├── apps-script/
+│   └── Code.gs            # Google Apps Script 後端 API 程式
+├── README.md              # 專案說明文件
+└── CLAUDE.md              # AI 協作記憶檔
+```
+
+---
+
+## 本地預覽與後端部署
+
+### 本地預覽
 ```bash
 python3 -m http.server 8080
 ```
-用瀏覽器打開 `http://localhost:8080`，點右上角 `⚙️` 貼上 `/exec` 網址與 `API_TOKEN` 並按「儲存並同步資料」即可。
+用瀏覽器開啟 `http://localhost:8080` 即可測試。
 
-### 3. 上傳到 GitHub Pages
-將本專案推上 GitHub 後，到 Repository 的 **Settings → Pages**：
-- Source 選 `Deploy from a branch`
-- Branch 選 `main`（`/ (root)`）
-- 儲存後即可透過 `https://<你的帳號>.github.io/<倉庫名稱>/` 在手機打開，並用 Safari「加入主畫面」當成 App 使用。
+### 更新 Google Apps Script 後端（若有修改 `apps-script/Code.gs`）
+1. 開啟 Google Apps Script 專案「重訓儀表板」，將 [apps-script/Code.gs](./apps-script/Code.gs) 貼入 `程式碼.gs` 並存檔。
+2. 點右上角 **「部署」→「管理部署作業」→ 編輯**：
+   - 版本：**建立新版本**
+   - 執行身分：**我**
+   - 誰可以存取：**任何人**（建議於 `Code.gs` 設定 `API_TOKEN` 並於網頁 `⚙️` 進階設定填入相同密碼）
+3. 按 **部署** 即可生效。
