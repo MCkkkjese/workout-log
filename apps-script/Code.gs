@@ -50,6 +50,8 @@ function doPost(e) {
     else if (action === 'saveBody') data = saveBody(payload);
     else if (action === 'updateBody') data = updateBody(payload);
     else if (action === 'deleteBody') data = deleteBody(payload);
+    else if (action === 'addExercise') data = addExercise(payload);
+    else if (action === 'updateExercise') data = updateExercise(payload);
     else throw new Error('未知的操作：' + action);
     return jsonOut_({ ok: true, data: data });
   } catch (err) {
@@ -162,4 +164,53 @@ function updateBody(p) {
 }
 function deleteBody(p) {
   return withLock_(function () { var b = bodySheet_(); b.deleteRow(findRow_(b, p.id)); });
+}
+function addExercise(p) {
+  return withLock_(function () {
+    var ex = String(p.ex || '').trim(), day = String(p.day || '').trim();
+    if (!ex || !day) throw new Error('請填寫動作名稱與訓練日');
+    var ss = SpreadsheetApp.openById(SSID);
+    var msh = ss.getSheetByName('動作');
+    var rows = msh.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === ex && String(rows[i][1]).trim() === day) {
+        throw new Error('這個訓練日已經有「' + ex + '」了');
+      }
+    }
+    var w = num_(p.w), k = num_(p.k);
+    msh.appendRow([ex, day, String(p.part || '').trim(), w === '' ? 0 : w, k === '' ? 0 : k, day === '腿日' ? 10 : 8, 3, '']);
+    var dsh = daySheet_(day);
+    var col = dsh.getLastColumn() + 1;
+    dsh.getRange(1, col, 1, 4).setValues([[ex + '_熱身', ex + '_正式', ex + '_突破', ex + '_次數']]);
+  });
+}
+function updateExercise(p) {
+  return withLock_(function () {
+    var oldEx = String(p.oldEx || '').trim(), newEx = String(p.ex || '').trim(), day = String(p.day || '').trim();
+    if (!oldEx || !newEx || !day) throw new Error('動作名稱不可為空');
+    var ss = SpreadsheetApp.openById(SSID);
+    var msh = ss.getSheetByName('動作');
+    var rows = msh.getDataRange().getValues();
+    var targetRow = -1;
+    for (var i = 1; i < rows.length; i++) {
+      var rEx = String(rows[i][0]).trim(), rDay = String(rows[i][1]).trim();
+      if (rEx === oldEx && rDay === day) targetRow = i + 1;
+      else if (newEx !== oldEx && rEx === newEx && rDay === day) throw new Error('「' + newEx + '」已經存在');
+    }
+    if (targetRow < 0) throw new Error('找不到「' + oldEx + '」');
+    var w = num_(p.w), k = num_(p.k);
+    msh.getRange(targetRow, 1, 1, 5).setValues([[newEx, day, String(p.part || '').trim(), w === '' ? 0 : w, k === '' ? 0 : k]]);
+    if (newEx !== oldEx) {
+      var dsh = daySheet_(day);
+      var hdr = dsh.getRange(1, 1, 1, dsh.getLastColumn()).getValues()[0];
+      var changed = false;
+      var newHdr = hdr.map(function (h) {
+        var s = String(h);
+        var m = s.match(/^(.*)_(熱身|正式|突破|次數)$/);
+        if (m && m[1] === oldEx) { changed = true; return newEx + '_' + m[2]; }
+        return h;
+      });
+      if (changed) dsh.getRange(1, 1, 1, newHdr.length).setValues([newHdr]);
+    }
+  });
 }

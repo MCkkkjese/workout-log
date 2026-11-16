@@ -257,8 +257,8 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION = 'v1.3.0';
-var APP_UPDATED = '2026-11-17 01:59';
+var APP_VERSION = 'v1.4.0';
+var APP_UPDATED = '2026-11-17 02:18';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -590,7 +590,24 @@ function wSummary(r){
   return {n:n,txt:parts.join('・')||'—'};
 }
 function pEdit(){
-  var h='<div class="seg"><button data-eseg="w" class="'+(state.eseg==='w'?'on':'')+'" style="'+(state.eseg==='w'?'background:var(--text)':'')+'">訓練紀錄</button><button data-eseg="b" class="'+(state.eseg==='b'?'on':'')+'" style="'+(state.eseg==='b'?'background:var(--text)':'')+'">身體狀況</button></div>';
+  var h='<div class="seg">'+
+    [['w','訓練紀錄'],['b','身體狀況'],['m','動作管理']].map(function(s){
+      var on=state.eseg===s[0];
+      return '<button data-eseg="'+s[0]+'" class="'+(on?'on':'')+'" style="'+(on?'background:var(--text)':'')+'">'+s[1]+'</button>';
+    }).join('')+'</div>';
+  if(state.eseg==='m'){
+    h+='<button class="save" style="margin:0 0 14px;padding:13px" data-addex>＋ 新增動作</button>';
+    D.days.forEach(function(day){
+      var list=D.menu.filter(function(m){return m.day===day;});
+      h+='<div class="sec" style="color:'+col(day)+'"><i style="background:'+col(day)+'"></i>'+esc(day)+'（'+list.length+'）</div>';
+      if(!list.length){h+='<div class="muted" style="font-size:13px;padding:6px 4px">還沒有動作</div>';return;}
+      list.forEach(function(m){
+        h+='<button class="er" data-editex="'+esc(day+'|'+m.ex)+'"><div class="ic" style="background:'+col(day)+'">'+(SHORT[day]||day)+'</div>'+
+          '<div class="tx"><b>'+esc(m.ex)+'</b><div>'+(m.part?esc(m.part)+' · ':'')+'熱身 '+kg(m.w)+' kg / 正式 '+kg(m.k)+' kg</div></div><span class="go">›</span></button>';
+      });
+    });
+    return h;
+  }
   var list=state.eseg==='w'?M.raw:M.body,lastM='';
   if(!list.length)return h+'<div class="card"><div class="empty">還沒有紀錄</div></div>';
   h+='<div class="muted" style="font-size:12px;margin:0 4px 6px">點一筆就可以修改或刪除</div>';
@@ -697,6 +714,23 @@ function openBody(rec){
   if(rec)h+='<button class="del" data-del>刪除這筆紀錄</button>';
   openSheet(h);
 }
+function openExercise(exObj){
+  var isNew=!exObj;
+  form={type:'ex',oldEx:isNew?null:exObj.ex,day:isNew?(D.days[0]||'推日'):exObj.day};
+  var h='<h3>'+(isNew?'新增動作':'修改動作')+'<button data-close>取消</button></h3>';
+  if(isNew){
+    h+='<div class="lab">訓練日</div><div class="sore">'+D.days.map(function(d){return '<button data-exday="'+esc(d)+'" class="'+(d===form.day?'on':'')+'">'+esc(d)+'</button>';}).join('')+'</div>';
+  } else {
+    h+='<div class="editing">所屬訓練日：'+esc(exObj.day)+'</div>';
+  }
+  h+='<div class="fld"><label>動作名稱</label><input id="exName" value="'+esc(isNew?'':exObj.ex)+'" placeholder="例如：飛鳥夾胸"></div>';
+  h+='<div class="fld"><label>部位（選填）</label><input id="exPart" value="'+esc(isNew?'':exObj.part)+'" placeholder="例如：胸、背、肩"></div>';
+  h+='<div class="fld"><label>預設熱身 (kg)</label><input inputmode="decimal" id="exW" value="'+esc(isNew?'':exObj.w)+'" placeholder="0"></div>';
+  h+='<div class="fld"><label>預設正式 (kg)</label><input inputmode="decimal" id="exK" value="'+esc(isNew?'':exObj.k)+'" placeholder="0"></div>';
+  h+='<div class="lab">'+(isNew?'新增後會在試算表「動作」與「'+esc(form.day)+'紀錄」自動加上對應欄位。':'修改名稱會同步更新菜單與紀錄表標題。')+'</div>';
+  h+='<button class="save" id="saveBtn" data-save>'+(isNew?'新增動作':'儲存修改')+'</button>';
+  openSheet(h);
+}
 function readNum(id){var el=$(id);if(!el)return '';var v=el.value.trim();if(v==='')return '';var n=Number(v);return isNaN(n)?'':n;}
 function call(fn,payload,btn,label,after){
   btn.disabled=true;btn.textContent='處理中…';
@@ -707,7 +741,15 @@ function call(fn,payload,btn,label,after){
   });
 }
 function doSave(){
-  var btn=$('saveBtn'),date=$('fdate').value||D.today;
+  var btn=$('saveBtn'),date=$('fdate')?($('fdate').value||D.today):D.today;
+  if(form.type==='ex'){
+    var ex=$('exName').value.trim();
+    if(!ex){toast('請輸入動作名稱');return;}
+    var ep={day:form.day,ex:ex,part:$('exPart').value.trim(),w:readNum('exW'),k:readNum('exK')};
+    if(form.oldEx){ep.oldEx=form.oldEx;call('updateExercise',ep,btn,'已更新動作 ✓');}
+    else call('addExercise',ep,btn,'已新增動作 ✓');
+    return;
+  }
   if(form.type==='w'){
     var items=[];form.items.forEach(function(it,i){if(it.on)items.push({ex:it.ex,w:readNum('in'+i+'w'),k:readNum('in'+i+'k'),b:readNum('in'+i+'b'),r:readNum('in'+i+'r')});});
     if(!items.length){toast('至少要有一個動作');return;}
@@ -730,6 +772,7 @@ function doDel(t){
 function toast(t){var el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(function(){el.classList.remove('on');},2500);}
 function findRaw(id){for(var i=0;i<D.raw.length;i++)if(D.raw[i].id===id)return D.raw[i];return null;}
 function findBody(id){for(var i=0;i<D.body.length;i++)if(D.body[i].id===id)return D.body[i];return null;}
+function findMenu(key){var p=key.split('|'),day=p[0],ex=p.slice(1).join('|');for(var i=0;i<D.menu.length;i++)if(D.menu[i].day===day&&D.menu[i].ex===ex)return D.menu[i];return null;}
 
 document.addEventListener('click',function(ev){
   var t=ev.target.closest('button');if(!t)return;
@@ -741,6 +784,9 @@ document.addEventListener('click',function(ev){
   if(ds.newbody!==undefined){openBody();return;}
   if(ds.editw){var r=findRaw(ds.editw);if(r)openWorkout(r.day,r);return;}
   if(ds.editb){var b=findBody(ds.editb);if(b)openBody(b);return;}
+  if(ds.addex!==undefined){openExercise();return;}
+  if(ds.editex){var m=findMenu(ds.editex);if(m)openExercise(m);return;}
+  if(ds.exday){form.day=ds.exday;[].forEach.call(document.querySelectorAll('[data-exday]'),function(x){x.classList.toggle('on',x.dataset.exday===ds.exday);});return;}
   if(ds.close!==undefined){closeSheet();return;}
   if(ds.opencfg!==undefined){openSettings();return;}
   if(ds.theme){
