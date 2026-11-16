@@ -63,6 +63,10 @@ input,textarea{font:inherit;color:var(--text)}
 .grid2 .card{margin:0}
 .stat .v{font-size:26px;font-weight:700;letter-spacing:-.5px}
 .stat .l{font-size:12px;color:var(--sub);margin-top:4px}
+.attcard{display:flex;align-items:center;gap:12px}
+.miniring{position:relative;width:54px;height:54px;flex:0 0 auto}
+.miniring svg{transform:rotate(-90deg)}
+.miniring .em{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;line-height:1}
 
 /* banner */
 .banner{background:rgba(201,133,59,.12);border:1px solid rgba(201,133,59,.35);border-radius:16px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.5;display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -253,8 +257,8 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION = 'v1.2.0';
-var APP_UPDATED = '2026-11-17 01:56';
+var APP_VERSION = 'v1.3.0';
+var APP_UPDATED = '2026-11-17 01:59';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -468,7 +472,12 @@ function pHome(){
   h+='<div class="grid2">';
   h+='<div class="card stat"><div class="v">'+(last?ago(last.d):'—')+'</div><div class="l">上次訓練'+(last?' · '+esc(last.day):'')+'</div></div>';
   h+='<div class="card stat"><div class="v">'+M.streak+' <span style="font-size:15px">週</span></div><div class="l">連續達標</div></div>';
-  h+='<div class="card stat"><div class="v">'+cm.n+'<span style="font-size:15px;color:var(--sub)"> / '+exp+'</span></div><div class="l">'+(cm.m+1)+' 月出席率 '+pc+'%</div></div>';
+  var attEmoji=pc>=85?'😊':pc>=50?'😐':'😭';
+  var attCol=pc>=85?'var(--good)':pc>=50?'var(--warn)':'var(--bad)';
+  var mr=22,mc=2*Math.PI*mr,mp=Math.min(pc/100,1);
+  h+='<div class="card stat attcard"><div class="miniring"><svg width="54" height="54"><circle cx="27" cy="27" r="'+mr+'" stroke="var(--line)" stroke-width="5.5" fill="none"/>'+
+    '<circle cx="27" cy="27" r="'+mr+'" stroke="'+attCol+'" stroke-width="5.5" fill="none" stroke-linecap="round" stroke-dasharray="'+(mc*mp)+' '+mc+'"/></svg>'+
+    '<div class="em">'+attEmoji+'</div></div><div><div class="v">'+pc+'<span style="font-size:15px">%</span></div><div class="l">'+(cm.m+1)+' 月出席率（'+cm.n+'/'+exp+'）</div></div></div>';
   h+='<div class="card stat"><div class="v">'+(b?(FACE[b.f]||'📝'):'—')+'</div><div class="l">'+(b?'身體狀況 · '+md(b.d):'還沒記錄身體狀況')+'</div></div>';
   h+='</div>';
   h+='<div class="card"><h2>各動作最強重量 <small>正式 / 突破組最高</small></h2>';
@@ -758,8 +767,25 @@ $('mask').onclick=closeSheet;
 $('cfgBtn').onclick=openSettings;
 $('rf').onclick=function(){refreshData(false);};
 
+function checkAppUpdate(){
+  if(location.protocol==='file:')return;
+  fetch('version.json?_t='+Date.now(),{cache:'no-store'}).then(function(r){
+    return r.ok?r.json():null;
+  }).then(function(info){
+    if(!info||!info.v||info.v===APP_VERSION)return;
+    try{
+      if(sessionStorage.getItem('gym_reloaded_v')===info.v)return;
+      sessionStorage.setItem('gym_reloaded_v',info.v);
+    }catch(e){}
+    var u=new URL(location.href);
+    u.searchParams.set('_v',info.v);
+    location.replace(u.toString());
+  }).catch(function(){});
+}
+
 derive();render();
 refreshData(true);
+checkAppUpdate();
 </script>
 </body>
 </html>
