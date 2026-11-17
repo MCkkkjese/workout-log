@@ -3,8 +3,8 @@
   "short_name": "重訓紀錄",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#F3ECE2",
-  "theme_color": "#F3ECE2",
+  "background_color": "#F2EDE6",
+  "theme_color": "#F2EDE6",
   "icons": [
     {
       "src": "icon-192.png",
