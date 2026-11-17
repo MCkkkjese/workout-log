@@ -112,6 +112,7 @@ input,textarea{font:inherit;color:var(--text)}
 .split2 .col:first-child{border-right:1px solid var(--line)}
 .split2 .l{font-size:12px;color:var(--sub);margin-bottom:6px;font-weight:500}
 .split2 .v{font-family:var(--serif);font-size:20px;font-weight:700;line-height:1.3}
+.split2 .subv{font-size:12px;color:var(--sub);margin-top:4px;font-weight:500}
 
 /* home card 3: body status */
 .body-card{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px}
@@ -322,8 +323,8 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION = 'v2.0.1';
-var APP_UPDATED = '2026-11-17 09:42';
+var APP_VERSION = 'v2.0.2';
+var APP_UPDATED = '2026-11-17 09:47';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -482,6 +483,14 @@ function derive(){
   var weeks=[];for(var i=7;i>=0;i--){var s=add(mon,-7*i);weeks.push({s:s,n:wc(s),cur:i===0});}
   var thisN=weeks[7].n;
   var streak=0;for(var w=(thisN>=D.target?0:1);w<260;w++){if(wc(add(mon,-7*w))>=D.target)streak++;else break;}
+  var bestStreak=streak;
+  if(sessions.length){
+    var firstMon=monday(pd(sessions[sessions.length-1].d)),run=0;
+    for(var cm0=firstMon;cm0<=mon;cm0=add(cm0,7)){
+      if(wc(cm0)>=D.target){run++;if(run>bestStreak)bestStreak=run;}
+      else run=0;
+    }
+  }
   var done={};sessions.forEach(function(s){if(pd(s.d)>=mon&&pd(s.d)<=today)(done[s.day]=done[s.day]||[]).push(s.d);});
   var lastByDay={};sessions.forEach(function(s){if(!lastByDay[s.day])lastByDay[s.day]=s.d;});
   var ex={};
@@ -501,7 +510,7 @@ function derive(){
   var months=[];for(var k=5;k>=0;k--){var dd=new Date(today.getFullYear(),today.getMonth()-k,1);months.push(month(dd.getFullYear(),dd.getMonth()));}
   var bodyS=D.body.slice().sort(function(a,b){return a.d===b.d?0:(a.d<b.d?1:-1);});
   var raw=D.raw.slice().sort(function(a,b){return a.d===b.d?0:(a.d<b.d?1:-1);});
-  M={today:today,mon:mon,sessions:sessions,dates:dates,weeks:weeks,thisN:thisN,streak:streak,done:done,lastByDay:lastByDay,ex:ex,months:months,cm:months[5],body:bodyS,raw:raw};
+  M={today:today,mon:mon,sessions:sessions,dates:dates,weeks:weeks,thisN:thisN,streak:streak,bestStreak:bestStreak,done:done,lastByDay:lastByDay,ex:ex,months:months,cm:months[5],body:bodyS,raw:raw};
 }
 function defaults(exn){
   var e=M.ex[exn],m=e.m,leg=m.day==='腿日';
@@ -581,7 +590,7 @@ function pHome(){
   // 第二張卡：上次訓練 + 連續達標
   h+='<div class="card split2">'+
     '<div class="col"><div class="l">上次訓練</div><div class="v">'+(last?ago(last.d)+' · '+esc(last.day):'尚未記錄')+'</div></div>'+
-    '<div class="col"><div class="l">連續達標</div><div class="v">'+M.streak+' 週</div></div></div>';
+    '<div class="col"><div class="l">連續達標</div><div class="v">'+M.streak+' 週</div><div class="subv">最高 '+M.bestStreak+' 週</div></div></div>';
 
   // 第三張卡：身體狀況
   h+='<div class="card body-card"><div><div class="l">身體狀況 · '+(b?ago(b.d):'尚未記錄')+'</div>'+
@@ -652,7 +661,7 @@ function pGoal(){
   h+='<div class="card"><h2>近 8 週次數 <small>綠 = 達標</small></h2><div class="bars">';
   M.weeks.forEach(function(w){h+='<div class="b"><em>'+w.n+'</em><i class="'+(w.cur?'cur':(w.n>=D.target?'ok':''))+'" style="height:'+(w.n/mx*100)+'%"></i><span>'+(w.s.getMonth()+1)+'/'+w.s.getDate()+'</span></div>';});
   h+='</div></div>';
-  h+='<div class="grid2"><div class="card stat"><div class="v">'+M.sessions.length+'</div><div class="l">累計訓練次數</div></div><div class="card stat"><div class="v">'+M.streak+' 週</div><div class="l">連續每週達標</div></div></div>';
+  h+='<div class="grid2"><div class="card stat"><div class="v">'+M.sessions.length+'</div><div class="l">累計訓練次數</div></div><div class="card stat"><div class="v">'+M.streak+' 週</div><div class="l">連續每週達標（最高 '+M.bestStreak+' 週）</div></div></div>';
   return h;
 }
 function fatigueChart(){
