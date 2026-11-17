@@ -122,7 +122,7 @@ input,textarea{font:inherit;color:var(--text)}
 
 /* weights page */
 .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:4px;margin-bottom:14px}
-.seg button{flex:1;min-height:44px;padding:8px 4px;border-radius:12px;font-weight:700;font-size:14px;color:var(--sub)}
+.seg button{flex:1;min-height:44px;padding:8px 2px;border-radius:12px;font-weight:700;font-size:13px;color:var(--sub);white-space:nowrap}
 .seg button.on{color:#fff}
 .wc{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(58,47,40,.03)}
 .wc .t{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -311,10 +311,6 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
       <div class="date" id="hdate"></div>
       <h1>重訓紀錄</h1>
     </div>
-    <button class="misc-btn" id="miscBtn" data-tab="misc" aria-label="雜項與身體狀況設定">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-      <span>雜項</span>
-    </button>
   </header>
   <main id="page"></main>
   <div class="verbar" id="verbar"></div>
@@ -326,8 +322,8 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION = 'v2.0.0';
-var APP_UPDATED = '2026-11-17 09:35';
+var APP_VERSION = 'v2.0.1';
+var APP_UPDATED = '2026-11-17 09:42';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -698,7 +694,7 @@ function pMisc(){
   h+='<button class="save" data-savecfg>儲存連線設定並同步</button>';
   h+='</div></details></div>';
 
-  h+='<div class="card"><h2>全部身體紀錄 <small>要修改到「修改紀錄」</small></h2>';
+  h+='<div class="card"><h2>全部身體紀錄 <small>要修改請切到「身體狀況」</small></h2>';
   if(!M.body.length)h+='<div class="empty">還沒有紀錄</div>';
   M.body.slice(0,30).forEach(function(r){h+=bodyLine(r);});
   return h+'</div>';
@@ -710,10 +706,13 @@ function wSummary(r){
 }
 function pEdit(){
   var h='<div class="seg">'+
-    [['w','訓練紀錄'],['b','身體狀況'],['m','動作管理']].map(function(s){
+    [['w','訓練紀錄'],['b','身體狀況'],['m','動作管理'],['misc','雜項']].map(function(s){
       var on=state.eseg===s[0];
       return '<button data-eseg="'+s[0]+'" class="'+(on?'on':'')+'" style="'+(on?'background:var(--text)':'')+'">'+s[1]+'</button>';
     }).join('')+'</div>';
+  if(state.eseg==='misc'){
+    return h+pMisc();
+  }
   if(state.eseg==='m'){
     h+='<button class="save" style="margin:0 0 14px" data-addex>＋ 新增動作</button>';
     D.days.forEach(function(day){
@@ -757,13 +756,12 @@ function renderNav(){
     var on=state.tab===it[0];
     return '<button class="nbtn'+(on?' on':'')+'" data-tab="'+it[0]+'">'+it[2]+'<span>'+it[1]+'</span></button>';
   }).join('');
-  $('miscBtn').classList.toggle('on',state.tab==='misc');
 }
 function render(){
   $('hdate').textContent=headerDate(D.today);
   renderNav();
-  var f={home:pHome,weights:pWeights,goal:pGoal,edit:pEdit,misc:pMisc}[state.tab]||pHome;
-  var warnHtml=connErr?'<div class="banner"><span>尚未連上試算表：'+esc(connErr)+'</span><button data-tab="misc">設定</button></div>':'';
+  var f={home:pHome,weights:pWeights,goal:pGoal,edit:pEdit}[state.tab]||pHome;
+  var warnHtml=connErr?'<div class="banner"><span>尚未連上試算表：'+esc(connErr)+'</span><button data-gomisc>設定</button></div>':'';
   $('page').innerHTML='<div class="fade">'+warnHtml+f()+'</div>';
   $('verbar').innerHTML='<span>版本 '+APP_VERSION+'</span><span>·</span><span>網頁更新 '+APP_UPDATED+'</span>';
 }
@@ -896,6 +894,7 @@ document.addEventListener('click',function(ev){
   var t=ev.target.closest('button');if(!t)return;
   var ds=t.dataset;
   if(ds.tab){state.tab=ds.tab;render();window.scrollTo(0,0);return;}
+  if(ds.gomisc!==undefined){state.tab='edit';state.eseg='misc';render();window.scrollTo(0,0);return;}
   if(ds.openpick!==undefined){openPicker();return;}
   if(ds.wday){state.wday=ds.wday;render();return;}
   if(ds.eseg){state.eseg=ds.eseg;render();return;}
