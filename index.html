@@ -67,6 +67,16 @@ input,textarea{font:inherit;color:var(--text)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(58,47,40,.035)}
 .card h2{font-family:var(--serif);font-size:17px;font-weight:700;margin:0 0 14px;display:flex;justify-content:space-between;align-items:center}
 .card h2 small{font-family:var(--sans);font-size:12px;color:var(--sub);font-weight:500}
+.card-link{font-family:var(--sans);min-width:44px;min-height:44px;margin:-10px -8px -10px 0;padding:0 8px;display:inline-flex;align-items:center;gap:2px;font-size:13px;font-weight:700;color:var(--accent)}
+.card-link svg{width:14px;height:14px}
+.jrow{width:100%;min-height:54px;display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);text-align:left}
+.jrow:last-child{border-bottom:0;padding-bottom:2px}
+.jrow .jic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff;flex:0 0 auto}
+.jrow .jtx{flex:1;min-width:0}
+.jrow .jtx b{font-size:14px;display:block}
+.jrow .jtx div{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jrow .jgo{color:var(--sub);flex:0 0 auto;display:grid;place-items:center}
+.jrow .jgo svg{width:15px;height:15px}
 .muted{color:var(--sub)}
 .dim{color:var(--sub)}
 .row{display:flex;align-items:center;gap:12px}
@@ -323,8 +333,8 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION = 'v2.0.4';
-var APP_UPDATED = '2026-11-17 10:30';
+var APP_VERSION = 'v2.1.0';
+var APP_UPDATED = '2026-11-17 10:35';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -565,6 +575,29 @@ function heroMsg(){
   return ['還差 '+(t-n)+' 次','本週還剩 '+left+' 天'+(left<t-n?'，有點趕了！':'，穩穩來。')];
 }
 
+function monthCalCard(cm,rightBtn){
+  var first=new Date(cm.y,cm.m,1),off=(first.getDay()+6)%7;
+  var h='<div class="card"><h2><span>'+cm.y+' 年 '+(cm.m+1)+' 月出勤日曆</span>'+(rightBtn||'')+'</h2><div class="cal">'+['一','二','三','四','五','六','日'].map(function(x){return '<div class="h">'+x+'</div>';}).join('');
+  for(var j=0;j<off;j++)h+='<div></div>';
+  for(var dnum=1;dnum<=cm.dim;dnum++){
+    var dd=new Date(cm.y,cm.m,dnum),ss=fd(dd),tt=M.dates[ss],fut=dd>M.today;
+    h+='<div class="c'+(tt?' on':'')+(fut?' fut':'')+(ss===D.today?' today':'')+'" style="'+(tt?'background:'+col(tt[0]):'')+'">'+(tt?(SHORT[tt[0]]||'✓'):dnum)+'</div>';
+  }
+  return h+'</div><div class="legend">'+D.days.map(function(d){return '<span><i style="background:'+col(d)+'"></i>'+esc(d)+'</span>';}).join('')+'</div></div>';
+}
+function recentJournalCard(limit){
+  var list=M.raw.slice(0,limit||4);
+  var h='<div class="card"><h2><span>近期訓練日記</span><button class="card-link" data-goworkouts><span>全部</span>'+ICO.chev+'</button></h2>';
+  if(!list.length)return h+'<div class="empty">還沒有訓練紀錄，點下方 ＋ 開始第一筆吧</div></div>';
+  list.forEach(function(r){
+    var s=wSummary(r);
+    h+='<button class="jrow" data-editw="'+esc(r.id)+'"><div class="jic" style="background:'+col(r.day)+'">'+(SHORT[r.day]||r.day)+'</div>'+
+      '<div class="jtx"><b>'+md(r.d)+' · '+ago(r.d)+' · '+esc(r.day)+'</b><div>'+s.n+' 個動作　'+esc(s.txt)+'</div></div>'+
+      '<span class="jgo">'+ICO.chev+'</span></button>';
+  });
+  return h+'</div>';
+}
+
 /* ---------- pages ---------- */
 function pHome(){
   var h='',msg=heroMsg(),last=M.sessions[0],b=M.body[0],cm=M.cm;
@@ -588,6 +621,10 @@ function pHome(){
   h+='<div class="card body-card"><div><div class="l">身體狀況 · '+(b?ago(b.d):'尚未記錄')+'</div>'+
     '<div class="v">'+(b?esc(bodyStatusText(b)):'尚未填寫')+'</div></div>'+
     '<button class="upd-link" data-newbody><span>更新</span>'+ICO.chev+'</button></div>';
+
+  // 第四、五張卡（往下滑呈現）：本月出勤日曆 + 近期訓練日記
+  h+=monthCalCard(cm,'<button class="card-link" data-tab="goal"><span>統計</span>'+ICO.chev+'</button>');
+  h+=recentJournalCard(4);
 
   return h;
 }
@@ -632,14 +669,7 @@ function pGoal(){
   var pace=cm.n>=cm.goal?'本月全月目標已達標！':cm.n>=exp?'進度達標或超前（應練 '+exp+' 次，已練 '+cm.n+' 次）':'進度落後 '+(exp-cm.n)+' 次（應練 '+exp+' 次），剩 '+(cm.dim-dom)+' 天還追得回來';
   h+='<div class="card hero"><div class="row">'+ringSmall(cm.n,exp,(cm.m+1)+' 月')+'<div class="msg"><b style="color:'+lv.color+'">'+(cm.m+1)+' 月出勤率 '+pc+'% '+lv.emoji+'</b><p>截至今日應練 '+exp+' 次，全月目標 '+cm.goal+' 次</p></div></div><div class="pace">'+pace+'</div></div>';
 
-  var first=new Date(cm.y,cm.m,1),off=(first.getDay()+6)%7;
-  h+='<div class="card"><h2>'+cm.y+' 年 '+(cm.m+1)+' 月出勤日曆</h2><div class="cal">'+['一','二','三','四','五','六','日'].map(function(x){return '<div class="h">'+x+'</div>';}).join('');
-  for(var j=0;j<off;j++)h+='<div></div>';
-  for(var dnum=1;dnum<=cm.dim;dnum++){
-    var dd=new Date(cm.y,cm.m,dnum),ss=fd(dd),tt=M.dates[ss],fut=dd>M.today;
-    h+='<div class="c'+(tt?' on':'')+(fut?' fut':'')+(ss===D.today?' today':'')+'" style="'+(tt?'background:'+col(tt[0]):'')+'">'+(tt?(SHORT[tt[0]]||'✓'):dnum)+'</div>';
-  }
-  h+='</div><div class="legend">'+D.days.map(function(d){return '<span><i style="background:'+col(d)+'"></i>'+esc(d)+'</span>';}).join('')+'</div></div>';
+  h+=monthCalCard(cm);
 
   h+='<div class="card"><h2>每月結算 <small>近 6 個月</small></h2><div class="mb">';
   M.months.forEach(function(mo,idx){
@@ -896,6 +926,7 @@ document.addEventListener('click',function(ev){
   var ds=t.dataset;
   if(ds.tab){state.tab=ds.tab;render();window.scrollTo(0,0);return;}
   if(ds.gomisc!==undefined){state.tab='edit';state.eseg='misc';render();window.scrollTo(0,0);return;}
+  if(ds.goworkouts!==undefined){state.tab='edit';state.eseg='w';render();window.scrollTo(0,0);return;}
   if(ds.openpick!==undefined){openPicker();return;}
   if(ds.wday){state.wday=ds.wday;render();return;}
   if(ds.eseg){state.eseg=ds.eseg;render();return;}
