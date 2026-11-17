@@ -323,8 +323,8 @@ textarea{width:100%;background:var(--card);border:1px solid var(--line);border-r
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION = 'v2.0.3';
-var APP_UPDATED = '2026-11-17 09:48';
+var APP_VERSION = 'v2.0.4';
+var APP_UPDATED = '2026-11-17 10:30';
 var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzI24qk2i3BUXBsDqUchV4JmmpU-NgGskHZTKzd26LEIkjIqXaYTD3EysZtcoC7bZFu/exec';
 var FALLBACK_DATA = {
   now: '尚未連線（顯示預設菜單）',
@@ -558,14 +558,6 @@ function dayChips(){
     return '<span class="chip'+(ok?' ok':'')+'">'+(ok?ICO.check:'')+esc(d)+'</span>';
   }).join('')+'</div>';
 }
-function bodyLine(r){
-  var st=splitList(r.st),so=splitList(r.sore);
-  var h='<div class="bl"><div class="e">'+(FACE[r.f]||'📝')+'</div><div class="tx"><b>'+md(r.d)+'</b>'+(r.f?' · '+FTXT[r.f]:'')+(r.sleep!==''?' · 睡 '+esc(r.sleep)+'h':'');
-  if(st.length)h+='<div class="stchips">'+st.map(function(s){return '<span>'+esc(s)+'</span>';}).join('')+'</div>';
-  if(so.length||r.note)h+='<div class="m">'+(so.length?'痠痛：'+esc(so.join('、')):'')+(so.length&&r.note?'<br>':'')+esc(r.note)+'</div>';
-  h+='</div></div>';
-  return h;
-}
 function heroMsg(){
   var n=M.thisN,t=D.target,left=6-((M.today.getDay()+6)%7);
   if(n>=t)return ['本週達標','已經練滿 '+t+' 次，多練都是賺到。'];
@@ -678,17 +670,7 @@ function fatigueChart(){
   return '<div class="card"><h2>疲勞趨勢 <small>最近 '+pts.length+' 筆</small></h2>'+s+'</div>';
 }
 function pMisc(){
-  var h='',b=M.body[0],th=getTheme(),cfg=getCfg();
-  h+='<div class="card hero"><div class="row"><div style="font-size:56px;line-height:1">'+(b?(FACE[b.f]||'📝'):'📝')+'</div><div class="msg"><b>'+(b?esc(bodyStatusText(b)):'尚未記錄身體狀況')+'</b><p style="margin-bottom:10px">'+(b?'最近一次 '+md(b.d)+'（'+ago(b.d)+'）':'每次記錄訓練時，表單最下面也能順便填。')+'</p>'+
-    '<button class="badge ok" data-newbody style="font-size:13px;padding:0 14px">＋ 記錄身體狀況</button></div></div></div>';
-
-  var cnt={},since=fd(add(M.today,-29));
-  M.body.forEach(function(r){if(r.d>=since)splitList(r.st).concat(splitList(r.sore).map(function(s){return s+'痠';})).forEach(function(s){cnt[s]=(cnt[s]||0)+1;});});
-  var keys=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a];});
-  if(keys.length)h+='<div class="card"><h2>近 30 天常見狀況</h2><div class="stchips">'+keys.slice(0,10).map(function(k){return '<span>'+esc(k)+' ×'+cnt[k]+'</span>';}).join('')+'</div></div>';
-
-  h+=fatigueChart();
-
+  var th=getTheme(),cfg=getCfg(),h='';
   h+='<div class="card"><h2>外觀與設定</h2>';
   h+='<div class="lab" style="margin-top:0">介面主題</div>';
   h+='<div class="tpick">';
@@ -702,11 +684,18 @@ function pMisc(){
   h+='<div class="fld"><label>Token 密碼</label><input id="cfgTok" type="password" value="'+esc(cfg.token)+'" placeholder="若 Code.gs 沒設可留空"></div>';
   h+='<button class="save" data-savecfg>儲存連線設定並同步</button>';
   h+='</div></details></div>';
-
-  h+='<div class="card"><h2>全部身體紀錄 <small>要修改請切到「身體狀況」</small></h2>';
-  if(!M.body.length)h+='<div class="empty">還沒有紀錄</div>';
-  M.body.slice(0,30).forEach(function(r){h+=bodyLine(r);});
-  return h+'</div>';
+  return h;
+}
+function pBodySection(){
+  var h='',b=M.body[0];
+  h+='<div class="card hero"><div class="row"><div style="font-size:56px;line-height:1">'+(b?(FACE[b.f]||'📝'):'📝')+'</div><div class="msg"><b>'+(b?esc(bodyStatusText(b)):'尚未記錄身體狀況')+'</b><p style="margin-bottom:10px">'+(b?'最近一次 '+md(b.d)+'（'+ago(b.d)+'）':'每次記錄訓練時，表單最下面也能順便填。')+'</p>'+
+    '<button class="badge ok" data-newbody style="font-size:13px;padding:0 14px">＋ 記錄身體狀況</button></div></div></div>';
+  var cnt={},since=fd(add(M.today,-29));
+  M.body.forEach(function(r){if(r.d>=since)splitList(r.st).concat(splitList(r.sore).map(function(s){return s+'痠';})).forEach(function(s){cnt[s]=(cnt[s]||0)+1;});});
+  var keys=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a];});
+  if(keys.length)h+='<div class="card"><h2>近 30 天常見狀況</h2><div class="stchips">'+keys.slice(0,10).map(function(k){return '<span>'+esc(k)+' ×'+cnt[k]+'</span>';}).join('')+'</div></div>';
+  h+=fatigueChart();
+  return h;
 }
 function wSummary(r){
   var parts=[],n=0;
@@ -734,6 +723,9 @@ function pEdit(){
       });
     });
     return h;
+  }
+  if(state.eseg==='b'){
+    h+=pBodySection();
   }
   var list=state.eseg==='w'?M.raw:M.body,lastM='';
   if(!list.length)return h+'<div class="card"><div class="empty">還沒有紀錄</div></div>';
